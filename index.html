@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360 計劃</title>
+    <style>
+        :root {
+            --hachi-blue: #5B9BD5;      
+            --pudding-yellow: #FFEC8B;  
+            --pudding-brown: #5D4037;   
+            --bg: #FAF9F6;              
+            --card-bg: #ffffff;
+            --circle-empty: #E0E0E0;
+        }
+
+        body {
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg);
+            color: var(--pudding-brown);
+            margin: 0;
+            padding: 16px;
+        }
+
+        header {
+            max-width: 900px;
+            margin: 0 auto 30px;
+            text-align: center;
+        }
+
+        h1 { font-size: 2.2rem; color: var(--hachi-blue); margin-bottom: 15px; letter-spacing: 3px; }
+
+        .stats-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px rgba(93, 64, 55, 0.08);
+            border: 2px solid var(--pudding-yellow);
+        }
+
+        .progress-bar-bg {
+            height: 14px;
+            background: #EEEEEE;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        #total-bar {
+            height: 100%;
+            background: var(--hachi-blue);
+            width: 0%;
+            transition: width 0.6s ease-in-out;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px 20px 20px;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #F0F0F0;
+            position: relative;
+        }
+        
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 8px;
+            background: var(--pudding-yellow);
+            border-radius: 24px 24px 0 0;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .week-tag {
+            background: var(--hachi-blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .date-text { font-size: 0.9rem; font-weight: 600; }
+
+        .goal-input {
+            border: 2px solid #F5F5F5;
+            background: #FFFEF9;
+            padding: 12px;
+            border-radius: 14px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1rem;
+            margin-bottom: 18px;
+            color: var(--pudding-brown);
+            outline: none;
+        }
+
+        .days-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            padding: 10px 0;
+        }
+
+        /* 🍮 固定大小的布丁按鈕 */
+        .dot {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1.1;
+            background: var(--circle-empty);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: #999;
+            font-weight: 900;
+            clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
+            transition: background 0.2s, color 0.2s;
+            overflow: hidden; /* 確保焦糖不會超出梯形 */
+        }
+
+        /* 🍮 焦糖層：預設透明，完成後顯示 */
+        .dot::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 35%;
+            background: var(--pudding-brown);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* 🍮 完成狀態：大小不變，僅顏色與焦糖變化 */
+        .dot.active {
+            background: var(--pudding-yellow);
+            color: var(--pudding-brown);
+        }
+
+        .dot.active::after {
+            opacity: 1;
+        }
+
+        /* 確保數字在焦糖上方且位置固定 */
+        .dot span {
+            position: relative;
+            z-index: 2;
+            margin-top: 8px; /* 稍微避開焦糖中心 */
+        }
+
+        .footer { text-align: center; margin: 50px 0; padding: 20px; }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+        button { background: var(--hachi-blue); border: none; color: white; padding: 12px 24px; border-radius: 16px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 0px #4A82B5; }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 0px #4A82B5; }
+        .reset-btn { background: #FF8A8A; box-shadow: 0 4px 0px #D66D6D; }
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🐾 360 計劃 🍮</h1>
+    <div class="stats-card">
+        <div style="font-weight: 900;">年度總進度：<span id="percent-text" style="color:var(--hachi-blue); font-size:1.4rem;">0</span> %</div>
+        <div class="progress-bar-bg"><div id="total-bar"></div></div>
+    </div>
+</header>
+
+<div class="grid" id="container"></div>
+
+<div class="footer">
+    <div class="btn-group">
+        <button onclick="exportData()">📤 匯出備份</button>
+        <button onclick="document.getElementById('file-input').click()">📥 讀取計畫</button>
+        <input type="file" id="file-input" accept=".json" onchange="importData(event)">
+    </div>
+    <button class="reset-btn" onclick="resetAll()">⚠️ 清空重置</button>
+</div>
+
+<script>
+    const fixedDates = [
+        "01/10-01/19", "01/20-01/29", "01/30-02/08", "02/09-02/18", "02/19-02/28", "03/01-03/10",
+        "03/11-03/20", "03/21-03/30", "03/31-04/09", "04/10-04/19", "04/20-04/29", "04/30-05/09",
+        "05/10-05/19", "05/20-05/29", "05/30-06/08", "06/09-06/18", "06/19-06/28", "06/29-07/08",
+        "07/09-07/18", "07/19-07/28", "07/29-08/07", "08/08-08/17", "08/18-08/27", "08/28-09/06",
+        "09/07-09/16", "09/17-09/26", "09/27-10/06", "10/07-10/16", "10/17-10/26", "10/27-11/05",
+        "11/06-11/15", "11/16-11/25", "11/26-12/05", "12/06-12/15", "12/16-12/25", "12/26-01/04"
+    ];
+
+    let trackerData = [];
+
+    function init() {
+        const saved = localStorage.getItem('myTenDayTracker');
+        if (saved) {
+            trackerData = JSON.parse(saved);
+        } else {
+            trackerData = fixedDates.map((date, i) => ({
+                week: i + 1,
+                date: date,
+                goal: "",
+                days: Array(10).fill(false)
+            }));
+            save();
+        }
+    }
+
+    function render() {
+        const container = document.getElementById('container');
+        container.innerHTML = '';
+        let totalActive = 0;
+
+        trackerData.forEach((item, index) => {
+            const activeCount = item.days.filter(d => d).length;
+            totalActive += activeCount;
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="week-tag">Week ${item.week}</span>
+                    <span class="date-text">${item.date}</span>
+                </div>
+                <input type="text" class="goal-input" placeholder="本期目標..." value="${item.goal || ''}" onchange="updateGoal(${index}, this.value)">
+                <div class="days-row">
+                    ${item.days.map((day, dIdx) => `
+                        <div class="dot ${day ? 'active' : ''}" onclick="toggleDay(${index}, ${dIdx})">
+                            <span>${dIdx + 1}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        const percent = Math.round((totalActive / 360) * 100);
+        document.getElementById('total-bar').style.width = percent + '%';
+        document.getElementById('percent-text').innerText = percent;
+    }
+
+    function toggleDay(wIdx, dIdx) {
+        trackerData[wIdx].days[dIdx] = !trackerData[wIdx].days[dIdx];
+        save();
+        render();
+    }
+
+    function updateGoal(wIdx, val) {
+        trackerData[wIdx].goal = val;
+        save();
+    }
+
+    function save() {
+        localStorage.setItem('myTenDayTracker', JSON.stringify(trackerData));
+    }
+
+    function resetAll() {
+        if (confirm("要清空所有紀錄重新開始嗎？")) {
+            localStorage.removeItem('myTenDayTracker');
+            location.reload();
+        }
+    }
+
+    function exportData() {
+        const blob = new Blob([JSON.stringify(trackerData, null, 2)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `360_Plan_Backup.json`;
+        a.click();
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                trackerData = JSON.parse(e.target.result);
+                save(); render();
+                alert("計畫匯入成功！");
+            } catch (err) { alert("讀取失敗"); }
+        };
+        reader.readAsText(file);
+    }
+
+    init();
+    render();
+</script>
+</body>
+</html>
